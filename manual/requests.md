@@ -1,29 +1,35 @@
-# Requests环境
+# BaseRequests
 ## **http_methods**
-一个最为基础的请求方法. 为了避免手动输入可能造成的错误, 我们已经有了预设的method: `utils/data_sets.py::Method`, 因此当我们使用 `http_methods` 方法时可以通过调用 `Method` 传入 `method` 参数.
+A basic request method with a default timeout of 5 seconds.
 
-timeout我们也提供了预设的值: `utils/data_sets.py::TimeOut`, 且默认超时为3s, 若想要调整超时时间请通过调用 `TimeOut` 传入 `timeout` 参数.
+required params:
 - method: str
 - url: str
-- params: Dict[str, str|int] | None
-- headers: Dict[str, str] | None
-- json_params: Any
-- data_params: Dict[str, str | int] | None
-- cookies: Dict[str, str]
-- timeout: int
+
+`method`: method for the new Request object: GET, OPTIONS, HEAD, POST, PUT, PATCH, or DELETE.
+
+`url`: URL for the new Request object.
+
+The following params can be used as needed(For specific meanings, please refer to: [Main Interface](https://requests.readthedocs.io/en/latest/api/))：
+- params
+- json
+- headers
+- cookies
+- files
+- auth
+- timeout
+- allow_redirects
+- proxies
+- verify
+- stream
+- cert
 
 ## **http_with_proxy**
-为请求增加代理, `https`默认与`http`相同, `http`默认为 `127.0.0.1:8888`
+Request with proxy, we can capture requests by listening.
 - method: str
 - url: str
-- http: str
-- https: str|None
-
-## **http_with_file**
-一个处理上传文件接口的方法
-- url: str
-- path: str
-- name: str
+- host: str
+- port: str
 
 ## **assert_status_code**
 一个用于断言响应状态码的函数, 默认验证响应码为200
@@ -69,9 +75,11 @@ Json数据可能会存在嵌套的情况, 因此我们使用该函数的过程�
 - complete_match: bool
 
 ## **get_token**
-可以使用此方法获取并保存响应信息中的token, 后续使用token时直接调用 `self.token` 即可
+You can use this method to obtain and save the token in the response, and directly call `self.token` when using the token in the future.
+
+But we need to make sure that the jsonpath is correct during the fetching process
 - response: Response
-- expr: str
+- jsonpath: str
 
 ## **get_cookies**
 可以使用此方法获取并保存响应中的cookies, 后续使用cookies时直接调用 `self.cookies` 即可
