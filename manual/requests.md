@@ -32,21 +32,31 @@ Request with proxy, we can capture requests by listening.
 - port: str
 
 ## **assert_status_code**
-一个用于断言响应状态码的函数, 默认验证响应码为200
+Verify response status code, default response is considered to be 200.
 - response: Response
 - e_status: int
 
 ## **assert_json_response**
-当我们希望断言响应数据，并且响应的数据是json结构时可以使用此函数. 
+This function can be used when we want to verify the response body and the response data is in json format.
 
-Json数据可能会存在嵌套的情况, 因此我们使用该函数的过程中需要借助JsonPath尽可能的解析Json, 我们提供了 [JsonPath](https://github.com/WY-74/fragmented-notes/blob/master/base/006.md) 相关文章来帮助您熟悉JsonPath. `has_no` 会控制我们验证的方式, 默认情况下我们验证的是期望结果存在于Json解析后的列表中, 当设置 `has_no` 为 `True` 之后将验证期望结果不在Json解析后的列表中
+Json data is usually more complex, so we can parse json by JsonPath. 
 
-`overall` 默认是关闭的状态, 若您想开启请设置为`True`, `overall`开启后的JsonPath将会失效, 函数将会把您的期望结果和实际的响应结果进行完全匹配的验证
+**Notes: When the Json has been parsed correctly by the JsonPath, the result is returned as a list(We'll call it JPL ). Remember that this affects the way we set the incoming parameters.**
 - response: Response
 - want: Any
-- expr: str
+- jsonpath: str
 - overall: bool
 - has_no: bool
+
+`response`: A new response
+
+`want`: Expected value.
+
+`jsonpath`: JsonPath statement for parsing Json data
+
+`has`: By default, the function determines that the expected value is in the JPL. We can set `has=False` to verify that the expected value is not in the JPL
+
+`overall`: We can set `overall=True`, which will bypass Jsonpath parsing and verify that the expected value is exactly the same as the response data.
 
 ## **assert_xml_response**
 当响应返回的内容是XML时可以使用该方法验证. 目前我们提供的验证方法时匹配符合xpth的元素, 并将这些元素的文本信息存放到列表中, 判断我们期望的数据是否在列表中
@@ -74,12 +84,19 @@ Json数据可能会存在嵌套的情况, 因此我们使用该函数的过程�
 - want: str|None
 - complete_match: bool
 
-## **get_token**
-You can use this method to obtain and save the token in the response, and directly call `self.token` when using the token in the future.
+## **get_text_from_root**
+Get the desired text message in the response result by JsonPath
+- response: Response
+- jsonpath
 
-But we need to make sure that the jsonpath is correct during the fetching process
+
+## **get_token**
+You can use this method to obtain and save the token in the response, and directly call `self.token[]` when using the token in the future.
+
+But we need to make sure that the JsonPath is correct during the fetching process
 - response: Response
 - jsonpath: str
+- name : str
 
 ## **get_cookies**
 可以使用此方法获取并保存响应中的cookies, 后续使用cookies时直接调用 `self.cookies` 即可

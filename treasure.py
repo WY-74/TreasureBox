@@ -9,7 +9,7 @@ from xml.etree.ElementTree import Element
 
 class BaseRequests:
     def __init__(self, driver: None):
-        self.token = ""
+        self.token: Dict[str, str] = {}
         self.cookies: Dict[str, Any] = {}
 
     def _get_items_by_jsonpath(self, obj, expr: str):
@@ -40,17 +40,22 @@ class BaseRequests:
         assert status == e_status
 
     def assert_json_response(
-        self, response: Response, want: List[Any], expr: str = "$", overall: bool = False, has_no: bool = False
+        self, response: Response, want: Any, jsonpath: str = "$", has: bool = True, overall: bool = False
     ):
         root = response.json()
 
         if overall:
-            assert want == root
+            try:
+                assert want == root
+                return
+            except Exception:
+                raise Exception(f"The respoonse(json): {root}")
 
-        items: List[Any] = self._get_items_by_jsonpath(root, expr)
-        if has_no:
-            assert want not in items
-        assert want in items
+        items: List[Any] = self._get_items_by_jsonpath(root, jsonpath)
+        if has:
+            assert want in items
+            return
+        assert want not in items
 
     def assert_xml_response(self, response: Response, xpath: str, want: str):
         root: Element = ElementTree.fromstring(response.text)
@@ -71,12 +76,17 @@ class BaseRequests:
         result = execute_sql(sql)
         if not complete_match:
             assert result != None
+            return
         assert result == want
 
-    def get_token(self, response: Response, jsonpath: str):
+    def get_text_from_root(self, response: Response, jsonpath: str):
         root = response.json()
-        items = self._get_items_by_jsonpath(root, jsonpath)
-        self.token = items[0]
+        text = self._get_items_by_jsonpath(root, jsonpath)[0]
+        return text
+
+    def get_token(self, response: Response, jsonpath: str, name: str):
+        token = self.get_text_from_root(response, jsonpath)
+        self.token[name] = token
 
     def get_cookies(self, response: Response):
         cookies = response.cookies
