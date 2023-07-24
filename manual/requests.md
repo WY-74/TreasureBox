@@ -59,36 +59,73 @@ Json data is usually more complex, so we can parse json by JsonPath.
 `overall`: We can set `overall=True`, which will bypass Jsonpath parsing and verify that the expected value is exactly the same as the response data.
 
 ## **assert_xml_response**
-当响应返回的内容是XML时可以使用该方法验证. 目前我们提供的验证方法时匹配符合xpth的元素, 并将这些元素的文本信息存放到列表中, 判断我们期望的数据是否在列表中
+This method can be used to validate a response when the returned content is XML. The validation method we currently provide matches elements that match xpth and stores the text of those elements in a list to determine if the data we expect is in the list.
 - response: Response
 - xpath: str
 - want: str
 
-## **assert_by_jsonschema**
-当我们对大数据采用类型/结构验证时(只关注数据类型和整体结构)可以用此方法, 此方法会依据响应生成JsonSchema, 利用JsonSchema进行断言
+## **assert_from_db**
+This method can be used when we occasionally assert the database (which is not recommended, and is a dangerous thing to do when working with databases).
+- sql: str
+- want: str|None
+- complete_match: bool
 
-`generate` 默认是T, 意味着每一次调用此方法都会依据响应生产新的JsonSchema; `file_path` 默认是None, 若我们传入一个路径调用此方法时会将JsonSchema存入/读取出文件. 我们可以利用这两个参数组合出不同的使用方法:
-| generate | file_path | 描述 |
-| -------- | -------- | -------- |
-| True | str | 生成新的JsonSchema并存入文件, 验证时通过读取文件内容验证 |
-| True | None | 生成新的JsonSchema并直接进行验证, 不进行存储和读取文件的过程 |
-| False | str | 不生成新的JsonSchema, 直接利用路径文件中的JsonSchema进行验证 |
-| False | None | 报错: No Json Schema is generated and no file is passed in |
+## **assert_by_jsonschema**
+Type/structure validation of data (focusing only on the data type and the overall structure) you can use this function, the function will be based on the response to generate a JsonSchema, the use of JsonSchema for the data assertions
 - response: Response
 - generate: bool
 - file_path: str|None
 
-## **assert_from_db**
-我们偶尔会对数据库进行断言(不推荐这样的做法, 操作数据库时是危险的事情), 此时可以使用该方法.
-- sql: str
-- want: str|None
-- complete_match: bool
+`generate`: `True` by default, which means that each call to this method will generate a new JsonSchema based on the response
+
+`file_path`: `None` by default, which means that if we pass a path to a file, the method will be called with the JsonSchema saved/read to/from the file. We can use these two parameters in different ways:
+| generate | file_path | descriptions |
+| -------- | -------- | -------- |
+| True | str | Generate a new JsonSchema and store it in a file, validate it by reading the contents of the file. |
+| True | None | Generate a new JsonSchema and validate it directly, without the process of storing and reading files. |
+| False | str | Do not generate a new JsonSchema, directly utilize the JsonSchema in the path file for validation. |
+| False | None | Error: No Json Schema is generated and no file is passed in |
+
+## **assert_by_yamlmap**
+During the course of the project, we usually want to manage the data in one place. `assert_by_yamlmap`is used to unify the processing of fine json data validation.
+- resonse: Response
+- path: str
+
+How to use:
+1. First we need to create a new yaml file for settings and data storage
+2. The following format needs to be adhered to in the yaml file:
+    ```yaml
+    settings:
+    # settings: The content under settings is the setup information.
+        add_goods:  # Function name for calling the assert_by_yamlmap
+            overall: True
+            # We can set the 'overall', 'jsonpath', 'has' for assertions as needed.
+            # overall: exact match validation with response results(Highest priority, 'jsonpath' and 'has' will be disabled if set to True.)
+            # jsonpath: The jsonpath statement extracts the content of the response and then validates it.
+            # has: Changing the validation method
+                # True(default): existent
+                # False: non-existent
+        add_cart:
+            jsonpath: "$.errmsg"
+        delete_goods:
+            overall: True
+
+    assert:
+    # assert: The content under assert is an assertion message.
+        add_goods:  # Function name for calling the assert_by_yamlmap
+            errno: 0
+            errmsg: 成功
+            # expected value
+        add_cart: "成功"
+        delete_goods:
+            errno: 0
+            errmsg: 成功
+    ```
 
 ## **get_text_from_root**
 Get the desired text message in the response result by JsonPath
 - response: Response
 - jsonpath
-
 
 ## **get_token**
 You can use this method to obtain and save the token in the response, and directly call `self.token[]` when using the token in the future.
@@ -99,5 +136,5 @@ But we need to make sure that the JsonPath is correct during the fetching proces
 - name : str
 
 ## **get_cookies**
-可以使用此方法获取并保存响应中的cookies, 后续使用cookies时直接调用 `self.cookies` 即可
+You can use this method to get and save the cookies in the response, and then call `self.cookies` when you want to use the cookies later.
 - response: Response

@@ -3,3 +3,4 @@ jsonpath==0.82
 jsonschema==4.18.4
 requests==2.31.0
 pymysql==1.1.0
+pyyaml==6.0.1

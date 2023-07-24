@@ -1,6 +1,7 @@
+import inspect
 import jsonpath
 import requests
-from .utils import generate_jsonschema, validate_jsonschema, execute_sql
+from .utils import generate_jsonschema, validate_jsonschema, execute_sql, load_yaml_map
 from requests import Response
 from typing import Dict, Any, List
 from xml.etree import ElementTree
@@ -63,12 +64,6 @@ class BaseRequests:
         items_text = [item.text for item in items]
         assert want in items_text
 
-    def assert_by_jsonschema(self, response: Response, generate: bool = True, file_path: str | None = None):
-        response = response.json()
-        if generate:
-            schema = generate_jsonschema(response, file_path)
-        assert validate_jsonschema(response, schema, file_path)
-
     def assert_from_db(self, sql: str, want: str | None = None, complete_match: bool = False):
         if complete_match and want == None:
             raise Exception("[assert_from_db]: We need to pass in the 'want' or change the 'assert_mothod' to False!")
@@ -78,6 +73,21 @@ class BaseRequests:
             assert result != None
             return
         assert result == want
+
+    def assert_by_jsonschema(self, response: Response, generate: bool = True, file_path: str | None = None):
+        response = response.json()
+        if generate:
+            schema = generate_jsonschema(response, file_path)
+        assert validate_jsonschema(response, schema, file_path)
+
+    def assert_by_yamlmap(self, resonse: Response, path: str):
+        caller_frame = inspect.stack()[1].frame
+        caller_name = caller_frame.f_code.co_name
+        raw = load_yaml_map(path)
+
+        set = raw["settings"][caller_name]
+        want = raw["assert"][caller_name]
+        self.assert_json_response(resonse, want, **set)
 
     def get_text_from_root(self, response: Response, jsonpath: str):
         root = response.json()
