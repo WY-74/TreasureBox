@@ -1,33 +1,16 @@
+import inspect
 import jsonpath
 import requests
-from .utils import generate_jsonschema, validate_jsonschema, execute_sql
-from dataclasses import dataclass
-from io import BufferedReader
+from .utils import generate_jsonschema, validate_jsonschema, execute_sql, load_yaml_map
 from requests import Response
 from typing import Dict, Any, List
 from xml.etree import ElementTree
 from xml.etree.ElementTree import Element
 
 
-@dataclass
-class Methods:
-    get: str = "get"
-    post: str = "post"
-    put: str = "put"
-    delete: str = "delete"
-
-
-@dataclass
-class TimeOut:
-    fast: int = 3
-    normal: int = 10
-
-
 class BaseRequests:
-    ParamsType = Dict[str, str | int] | None
-
     def __init__(self, driver: None):
-        self.token = ""
+        self.token: Dict[str, str] = {}
         self.cookies: Dict[str, Any] = {}
 
     def _get_items_by_jsonpath(self, obj, expr: str):
@@ -42,67 +25,44 @@ class BaseRequests:
             raise Exception("Xpath did not match the content")
         return items
 
-    def http_methods(
-        self,
-        method: str,
-        url: str,
-        params: ParamsType = None,
-        headers: Dict[str, str] | None = None,
-        json_params: ParamsType = None,
-        data_params: ParamsType = None,
-        cookies: Dict[str, str] | None = None,
-        timeout: int = TimeOut.fast,
-    ) -> Response:
-        return requests.request(
-            method,
-            url,
-            params=params,
-            headers=headers,
-            json=json_params,
-            data=data_params,
-            cookies=cookies,
-            timeout=timeout,
-        )
+    def http_methods(self, method: str, url: str, **kwargs) -> Response:
+        if not kwargs.get("timeout"):
+            kwargs["timeout"] = 5
+        return requests.request(method, url, **kwargs)
 
-    def http_with_proxy(
-        self, method: str, url: str, http: str = "127.0.0.1:8888", https: str | None = None, **kwargs
-    ) -> Response:
-        https = http if https == None else https
-        proxies = {"http": f"http://{http}", "https": f"http://{https}"}
-        return requests.request(method, url, proxies=proxies, verify=False, **kwargs)
-
-    def http_with_file(self, url: str, path: str, name: str = "name by tframe"):
-        files: Dict[str, BufferedReader] = {name: open(path, "rb")}
-        return requests.request(Methods.post, url, files=files)
+    def http_with_proxy(self, method: str, url: str, host: str, port: str, **kwargs) -> Response:
+        http: str = f"http://{host}:{port}"
+        https: str = f"https://{host}:{port}"
+        proxies = {"http": http, "https": https}
+        return self.http_methods(method, url, proxies=proxies, verify=False, **kwargs)
 
     def assert_status_code(self, response: Response, e_status: int = 200):
         status = response.status_code
         assert status == e_status
 
     def assert_json_response(
-        self, response: Response, want: List[Any], expr: str = "$", overall: bool = False, has_no: bool = False
+        self, response: Response, want: Any, jsonpath: str = "$", has: bool = True, overall: bool = False
     ):
         root = response.json()
 
         if overall:
-            assert want == root
+            try:
+                assert want == root
+                return
+            except Exception:
+                raise Exception(f"The respoonse(json): {root}")
 
-        items: List[Any] = self._get_items_by_jsonpath(root, expr)
-        if has_no:
-            assert want not in items
-        assert want in items
+        items: List[Any] = self._get_items_by_jsonpath(root, jsonpath)
+        if has:
+            assert want in items
+            return
+        assert want not in items
 
     def assert_xml_response(self, response: Response, xpath: str, want: str):
         root: Element = ElementTree.fromstring(response.text)
         items: List[Any] = self._get_items_by_xpath(root, xpath)
         items_text = [item.text for item in items]
         assert want in items_text
-
-    def assert_by_jsonschema(self, response: Response, generate: bool = True, file_path: str | None = None):
-        response = response.json()
-        if generate:
-            schema = generate_jsonschema(response, file_path)
-        assert validate_jsonschema(response, schema, file_path)
 
     def assert_from_db(self, sql: str, want: str | None = None, complete_match: bool = False):
         if complete_match and want == None:
@@ -111,15 +71,32 @@ class BaseRequests:
         result = execute_sql(sql)
         if not complete_match:
             assert result != None
+            return
         assert result == want
 
-    def get_token(self, response: Response, expr: str):
-        root = response.json()
-        items = self._get_items_by_jsonpath(root, expr)
-        if not items:
-            raise Exception("Get token JsonPath did not match the content")
+    def assert_by_jsonschema(self, response: Response, generate: bool = True, file_path: str | None = None):
+        response = response.json()
+        if generate:
+            schema = generate_jsonschema(response, file_path)
+        assert validate_jsonschema(response, schema, file_path)
 
-        self.token = items[0]
+    def assert_by_yamlmap(self, resonse: Response, path: str):
+        caller_frame = inspect.stack()[1].frame
+        caller_name = caller_frame.f_code.co_name
+        raw = load_yaml_map(path)
+
+        set = raw["settings"][caller_name]
+        want = raw["assert"][caller_name]
+        self.assert_json_response(resonse, want, **set)
+
+    def get_text_from_root(self, response: Response, jsonpath: str):
+        root = response.json()
+        text = self._get_items_by_jsonpath(root, jsonpath)[0]
+        return text
+
+    def get_token(self, response: Response, jsonpath: str, name: str):
+        token = self.get_text_from_root(response, jsonpath)
+        self.token[name] = token
 
     def get_cookies(self, response: Response):
         cookies = response.cookies
