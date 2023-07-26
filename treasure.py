@@ -53,10 +53,13 @@ class BaseRequests:
                 raise Exception(f"The respoonse(json): {root}")
 
         items: List[Any] = self._get_items_by_jsonpath(root, jsonpath)
-        if has:
-            assert want in items
-            return
-        assert want not in items
+        try:
+            if has:
+                assert want in items
+                return
+            assert want not in items
+        except Exception:
+            raise Exception(f"response: {response.json()}\nitems: {items}")
 
     def assert_xml_response(self, response: Response, xpath: str, want: str):
         root: Element = ElementTree.fromstring(response.text)
@@ -80,21 +83,21 @@ class BaseRequests:
             schema = generate_jsonschema(response, file_path)
         assert validate_jsonschema(response, schema, file_path)
 
-    def assert_by_yamlmap(self, resonse: Response, path: str):
+    def assert_by_yamlmap(self, response: Response, path: str):
         caller_frame = inspect.stack()[1].frame
         caller_name = caller_frame.f_code.co_name
         raw = load_yaml_map(path)
 
         set = raw["settings"][caller_name]
         want = raw["assert"][caller_name]
-        self.assert_json_response(resonse, want, **set)
+        self.assert_json_response(response, want, **set)
 
     def get_text_from_root(self, response: Response, jsonpath: str):
         root = response.json()
         text = self._get_items_by_jsonpath(root, jsonpath)[0]
         return text
 
-    def get_token(self, response: Response, jsonpath: str, name: str):
+    def get_token(self, response: Response, jsonpath: str, name: str = "token"):
         token = self.get_text_from_root(response, jsonpath)
         self.token[name] = token
 

@@ -88,7 +88,7 @@ Type/structure validation of data (focusing only on the data type and the overal
 
 ## **assert_by_yamlmap**
 During the course of the project, we usually want to manage the data in one place. `assert_by_yamlmap`is used to unify the processing of fine json data validation.
-- resonse: Response
+- response: Response
 - path: str
 
 How to use:
