@@ -1,7 +1,9 @@
 import inspect
 import jsonpath
 import requests
+import xmltodict
 from .utils import generate_jsonschema, validate_jsonschema, execute_sql, load_yaml_map
+from json import JSONDecodeError
 from requests import Response
 from typing import Dict, Any, List
 from xml.etree import ElementTree
@@ -40,10 +42,14 @@ class BaseRequests:
         status = response.status_code
         assert status == e_status
 
-    def assert_json_response(
+    def assert_response(
         self, response: Response, want: Any, jsonpath: str = "$", has: bool = True, overall: bool = False
     ):
-        root = response.json()
+        try:
+            root = response.json()
+        except JSONDecodeError:
+            # Means that the response value is not in json format
+            root = xmltodict.parse(response.text)
 
         if overall:
             try:
@@ -90,7 +96,7 @@ class BaseRequests:
 
         set = raw["settings"][caller_name]
         want = raw["assert"][caller_name]
-        self.assert_json_response(response, want, **set)
+        self.assert_response(response, want, **set)
 
     def get_text_from_root(self, response: Response, jsonpath: str):
         root = response.json()

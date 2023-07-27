@@ -36,8 +36,8 @@ Verify response status code, default response is considered to be 200.
 - response: Response
 - e_status: int
 
-## **assert_json_response**
-This function can be used when we want to verify the response body and the response data is in json format.
+## **assert_response**
+This function can be used when we want to verify the response body(json/xml/html).
 
 Json data is usually more complex, so we can parse json by JsonPath. 
 
