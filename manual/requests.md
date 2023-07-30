@@ -37,32 +37,21 @@ Verify response status code, default response is considered to be 200.
 - e_status: int
 
 ## **assert_response**
-This function can be used when we want to verify the response body(json/xml/html).
+This function can be used when we want to verify the response body(json/xml) with expr(jsonpath/xpath).
 
-Json data is usually more complex, so we can parse json by JsonPath. 
-
-**Notes: When the Json has been parsed correctly by the JsonPath, the result is returned as a list(We'll call it JPL ). Remember that this affects the way we set the incoming parameters.**
+**Notes: When the Json/XML has been parsed correctly by the JsonPath/XPATH, the result is returned as a list(We'll call it EPL ). Remember that this affects the way we set the incoming parameters.**
 - response: Response
 - want: Any
 - jsonpath: str
-- overall: bool
-- has_no: bool
+- has: bool
 
 `response`: A new response
 
 `want`: Expected value.
 
-`jsonpath`: JsonPath statement for parsing Json data
+`expr`: JsonPath/XPATH statement for parsing Json/XML data. Since most of the response data is Json, the default value of our `expr` is `$.`.
 
-`has`: By default, the function determines that the expected value is in the JPL. We can set `has=False` to verify that the expected value is not in the JPL
-
-`overall`: We can set `overall=True`, which will bypass Jsonpath parsing and verify that the expected value is exactly the same as the response data.
-
-## **assert_xml_response**
-This method can be used to validate a response when the returned content is XML. The validation method we currently provide matches elements that match xpth and stores the text of those elements in a list to determine if the data we expect is in the list.
-- response: Response
-- xpath: str
-- want: str
+`has`: By default, the function determines that the expected value is in the EPL. We can set `has=False` to verify that the expected value is not in the EPL
 
 ## **assert_from_db**
 This method can be used when we occasionally assert the database (which is not recommended, and is a dangerous thing to do when working with databases).

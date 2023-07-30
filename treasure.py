@@ -42,23 +42,21 @@ class BaseRequests:
         status = response.status_code
         assert status == e_status
 
-    def assert_response(
-        self, response: Response, want: Any, jsonpath: str = "$", has: bool = True, overall: bool = False
-    ):
+    def assert_response(self, response: Response, want: Any, expr: str = "$.", has: bool = True):
         try:
             root = response.json()
+            response_type = "json"
         except JSONDecodeError:
             # Means that the response value is not in json format
-            root = xmltodict.parse(response.text)
+            root = ElementTree.fromstring(response.text)
+            response_type = "xml"
 
-        if overall:
-            try:
-                assert want == root
-                return
-            except Exception:
-                raise Exception(f"The respoonse(json): {root}")
+        if response_type == "json":
+            items = self._get_items_by_jsonpath(root, expr)
+        else:
+            items = self._get_items_by_xpath(root, expr)
+            items = [item.text for item in items]
 
-        items: List[Any] = self._get_items_by_jsonpath(root, jsonpath)
         try:
             if has:
                 assert want in items
@@ -66,12 +64,6 @@ class BaseRequests:
             assert want not in items
         except Exception:
             raise Exception(f"response: {response.json()}\nitems: {items}")
-
-    def assert_xml_response(self, response: Response, xpath: str, want: str):
-        root: Element = ElementTree.fromstring(response.text)
-        items: List[Any] = self._get_items_by_xpath(root, xpath)
-        items_text = [item.text for item in items]
-        assert want in items_text
 
     def assert_from_db(self, sql: str, want: str | None = None, complete_match: bool = False):
         if complete_match and want == None:
