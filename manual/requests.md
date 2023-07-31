@@ -49,7 +49,7 @@ This function can be used when we want to verify the response body(json/xml) wit
 
 `want`: Expected value.
 
-`expr`: JsonPath/XPATH statement for parsing Json/XML data. Since most of the response data is Json, the default value of our `expr` is `$.`.
+`expr`: JsonPath/XPATH statement for parsing Json/XML data. Since most of the response data is Json, the default value of our `expr` is `$..`.
 
 `has`: By default, the function determines that the expected value is in the EPL. We can set `has=False` to verify that the expected value is not in the EPL
 
@@ -117,12 +117,11 @@ Get the desired text message in the response result by JsonPath
 - jsonpath
 
 ## **get_token**
-You can use this method to obtain and save the token in the response, and directly call `self.token[]` when using the token in the future.
+You can use this method to obtain and save the token in the response, and directly call `self.token` when using the token in the future.
 
 But we need to make sure that the JsonPath is correct during the fetching process
 - response: Response
 - jsonpath: str
-- name : str
 
 ## **get_cookies**
 You can use this method to get and save the cookies in the response, and then call `self.cookies` when you want to use the cookies later.

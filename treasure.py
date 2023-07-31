@@ -1,7 +1,6 @@
 import inspect
 import jsonpath
 import requests
-import xmltodict
 from .utils import generate_jsonschema, validate_jsonschema, execute_sql, load_yaml_map
 from json import JSONDecodeError
 from requests import Response
@@ -12,7 +11,7 @@ from xml.etree.ElementTree import Element
 
 class BaseRequests:
     def __init__(self, driver: None):
-        self.token: Dict[str, str] = {}
+        self.token: str = ""
         self.cookies: Dict[str, Any] = {}
 
     def _get_items_by_jsonpath(self, obj, expr: str):
@@ -42,7 +41,7 @@ class BaseRequests:
         status = response.status_code
         assert status == e_status
 
-    def assert_response(self, response: Response, want: Any, expr: str = "$.", has: bool = True):
+    def assert_response(self, response: Response, want: Any, expr: str = "$..", has: bool = True):
         try:
             root = response.json()
             response_type = "json"
@@ -95,9 +94,8 @@ class BaseRequests:
         text = self._get_items_by_jsonpath(root, jsonpath)[0]
         return text
 
-    def get_token(self, response: Response, jsonpath: str, name: str = "token"):
-        token = self.get_text_from_root(response, jsonpath)
-        self.token[name] = token
+    def get_token(self, response: Response, jsonpath: str):
+        return self.get_text_from_root(response, jsonpath)
 
     def get_cookies(self, response: Response):
         cookies = response.cookies
