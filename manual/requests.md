@@ -36,33 +36,22 @@ Verify response status code, default response is considered to be 200.
 - response: Response
 - e_status: int
 
-## **assert_json_response**
-This function can be used when we want to verify the response body and the response data is in json format.
+## **assert_response**
+This function can be used when we want to verify the response body(json/xml) with expr(jsonpath/xpath).
 
-Json data is usually more complex, so we can parse json by JsonPath. 
-
-**Notes: When the Json has been parsed correctly by the JsonPath, the result is returned as a list(We'll call it JPL ). Remember that this affects the way we set the incoming parameters.**
+**Notes: When the Json/XML has been parsed correctly by the JsonPath/XPATH, the result is returned as a list(We'll call it EPL ). Remember that this affects the way we set the incoming parameters.**
 - response: Response
 - want: Any
 - jsonpath: str
-- overall: bool
-- has_no: bool
+- has: bool
 
 `response`: A new response
 
 `want`: Expected value.
 
-`jsonpath`: JsonPath statement for parsing Json data
+`expr`: JsonPath/XPATH statement for parsing Json/XML data. Since most of the response data is Json, the default value of our `expr` is `$..`.
 
-`has`: By default, the function determines that the expected value is in the JPL. We can set `has=False` to verify that the expected value is not in the JPL
-
-`overall`: We can set `overall=True`, which will bypass Jsonpath parsing and verify that the expected value is exactly the same as the response data.
-
-## **assert_xml_response**
-This method can be used to validate a response when the returned content is XML. The validation method we currently provide matches elements that match xpth and stores the text of those elements in a list to determine if the data we expect is in the list.
-- response: Response
-- xpath: str
-- want: str
+`has`: By default, the function determines that the expected value is in the EPL. We can set `has=False` to verify that the expected value is not in the EPL
 
 ## **assert_from_db**
 This method can be used when we occasionally assert the database (which is not recommended, and is a dangerous thing to do when working with databases).
@@ -88,7 +77,7 @@ Type/structure validation of data (focusing only on the data type and the overal
 
 ## **assert_by_yamlmap**
 During the course of the project, we usually want to manage the data in one place. `assert_by_yamlmap`is used to unify the processing of fine json data validation.
-- resonse: Response
+- response: Response
 - path: str
 
 How to use:
@@ -128,12 +117,11 @@ Get the desired text message in the response result by JsonPath
 - jsonpath
 
 ## **get_token**
-You can use this method to obtain and save the token in the response, and directly call `self.token[]` when using the token in the future.
+You can use this method to obtain and save the token in the response, and directly call `self.token` when using the token in the future.
 
 But we need to make sure that the JsonPath is correct during the fetching process
 - response: Response
 - jsonpath: str
-- name : str
 
 ## **get_cookies**
 You can use this method to get and save the cookies in the response, and then call `self.cookies` when you want to use the cookies later.

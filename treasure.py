@@ -2,6 +2,7 @@ import inspect
 import jsonpath
 import requests
 from .utils import generate_jsonschema, validate_jsonschema, execute_sql, load_yaml_map
+from json import JSONDecodeError
 from requests import Response
 from typing import Dict, Any, List
 from xml.etree import ElementTree
@@ -10,7 +11,7 @@ from xml.etree.ElementTree import Element
 
 class BaseRequests:
     def __init__(self, driver: None):
-        self.token: Dict[str, str] = {}
+        self.token: str = ""
         self.cookies: Dict[str, Any] = {}
 
     def _get_items_by_jsonpath(self, obj, expr: str):
@@ -40,29 +41,28 @@ class BaseRequests:
         status = response.status_code
         assert status == e_status
 
-    def assert_json_response(
-        self, response: Response, want: Any, jsonpath: str = "$", has: bool = True, overall: bool = False
-    ):
-        root = response.json()
+    def assert_response(self, response: Response, want: Any, expr: str = "$..", has: bool = True):
+        try:
+            root = response.json()
+            response_type = "json"
+        except JSONDecodeError:
+            # Means that the response value is not in json format
+            root = ElementTree.fromstring(response.text)
+            response_type = "xml"
 
-        if overall:
-            try:
-                assert want == root
+        if response_type == "json":
+            items = self._get_items_by_jsonpath(root, expr)
+        else:
+            items = self._get_items_by_xpath(root, expr)
+            items = [item.text for item in items]
+
+        try:
+            if has:
+                assert want in items
                 return
-            except Exception:
-                raise Exception(f"The respoonse(json): {root}")
-
-        items: List[Any] = self._get_items_by_jsonpath(root, jsonpath)
-        if has:
-            assert want in items
-            return
-        assert want not in items
-
-    def assert_xml_response(self, response: Response, xpath: str, want: str):
-        root: Element = ElementTree.fromstring(response.text)
-        items: List[Any] = self._get_items_by_xpath(root, xpath)
-        items_text = [item.text for item in items]
-        assert want in items_text
+            assert want not in items
+        except Exception:
+            raise Exception(f"response: {response.json()}\nitems: {items}")
 
     def assert_from_db(self, sql: str, want: str | None = None, complete_match: bool = False):
         if complete_match and want == None:
@@ -80,23 +80,22 @@ class BaseRequests:
             schema = generate_jsonschema(response, file_path)
         assert validate_jsonschema(response, schema, file_path)
 
-    def assert_by_yamlmap(self, resonse: Response, path: str):
+    def assert_by_yamlmap(self, response: Response, path: str):
         caller_frame = inspect.stack()[1].frame
         caller_name = caller_frame.f_code.co_name
         raw = load_yaml_map(path)
 
         set = raw["settings"][caller_name]
         want = raw["assert"][caller_name]
-        self.assert_json_response(resonse, want, **set)
+        self.assert_response(response, want, **set)
 
     def get_text_from_root(self, response: Response, jsonpath: str):
         root = response.json()
         text = self._get_items_by_jsonpath(root, jsonpath)[0]
         return text
 
-    def get_token(self, response: Response, jsonpath: str, name: str):
-        token = self.get_text_from_root(response, jsonpath)
-        self.token[name] = token
+    def get_token(self, response: Response, jsonpath: str):
+        return self.get_text_from_root(response, jsonpath)
 
     def get_cookies(self, response: Response):
         cookies = response.cookies
