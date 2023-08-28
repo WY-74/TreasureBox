@@ -20,41 +20,18 @@ class BaseRequests:
             raise Exception("JsonPath did not match the content")
         return items
 
-    def _get_items_by_xpath(self, obj: Element, expr: str):
-        items: List[Any] = obj.findall(f".{expr}")
-        if not items:
-            raise Exception("Xpath did not match the content")
-        return items
-
     def http_methods(self, method: str, url: str, **kwargs) -> Response:
         if not kwargs.get("timeout"):
             kwargs["timeout"] = 5
         return requests.request(method, url, **kwargs)
 
-    def http_with_proxy(self, method: str, url: str, host: str, port: str, **kwargs) -> Response:
-        http: str = f"http://{host}:{port}"
-        https: str = f"https://{host}:{port}"
-        proxies = {"http": http, "https": https}
-        return self.http_methods(method, url, proxies=proxies, verify=False, **kwargs)
-
-    def assert_status_code(self, response: Response, e_status: int = 200):
+    def assert_status_code(self, response: Response, want: int = 200):
         status = response.status_code
-        assert status == e_status
+        assert status == want
 
     def assert_response(self, response: Response, want: Any, expr: str = "$..", has: bool = True):
-        try:
-            root = response.json()
-            response_type = "json"
-        except JSONDecodeError:
-            # Means that the response value is not in json format
-            root = ElementTree.fromstring(response.text)
-            response_type = "xml"
-
-        if response_type == "json":
-            items = self._get_items_by_jsonpath(root, expr)
-        else:
-            items = self._get_items_by_xpath(root, expr)
-            items = [item.text for item in items]
+        root = response.json()
+        items = self._get_items_by_jsonpath(root, expr)
 
         try:
             if has:
@@ -63,22 +40,6 @@ class BaseRequests:
             assert want not in items
         except Exception:
             raise Exception(f"response: {response.json()}\nitems: {items}")
-
-    def assert_from_db(self, sql: str, want: str | None = None, complete_match: bool = False):
-        if complete_match and want == None:
-            raise Exception("[assert_from_db]: We need to pass in the 'want' or change the 'assert_mothod' to False!")
-
-        result = execute_sql(sql)
-        if not complete_match:
-            assert result != None
-            return
-        assert result == want
-
-    def assert_by_jsonschema(self, response: Response, generate: bool = True, file_path: str | None = None):
-        response = response.json()
-        if generate:
-            schema = generate_jsonschema(response, file_path)
-        assert validate_jsonschema(response, schema, file_path)
 
     def assert_by_yamlmap(self, response: Response, path: str):
         caller_frame = inspect.stack()[1].frame

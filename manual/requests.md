@@ -24,17 +24,10 @@ The following params can be used as needed(For specific meanings, please refer t
 - stream
 - cert
 
-## **http_with_proxy**
-Request with proxy, we can capture requests by listening.
-- method: str
-- url: str
-- host: str
-- port: str
-
 ## **assert_status_code**
 Verify response status code, default response is considered to be 200.
 - response: Response
-- e_status: int
+- want: int
 
 ## **assert_response**
 This function can be used when we want to verify the response body(json/xml) with expr(jsonpath/xpath).
@@ -52,28 +45,6 @@ This function can be used when we want to verify the response body(json/xml) wit
 `expr`: JsonPath/XPATH statement for parsing Json/XML data. Since most of the response data is Json, the default value of our `expr` is `$..`.
 
 `has`: By default, the function determines that the expected value is in the EPL. We can set `has=False` to verify that the expected value is not in the EPL
-
-## **assert_from_db**
-This method can be used when we occasionally assert the database (which is not recommended, and is a dangerous thing to do when working with databases).
-- sql: str
-- want: str|None
-- complete_match: bool
-
-## **assert_by_jsonschema**
-Type/structure validation of data (focusing only on the data type and the overall structure) you can use this function, the function will be based on the response to generate a JsonSchema, the use of JsonSchema for the data assertions
-- response: Response
-- generate: bool
-- file_path: str|None
-
-`generate`: `True` by default, which means that each call to this method will generate a new JsonSchema based on the response
-
-`file_path`: `None` by default, which means that if we pass a path to a file, the method will be called with the JsonSchema saved/read to/from the file. We can use these two parameters in different ways:
-| generate | file_path | descriptions |
-| -------- | -------- | -------- |
-| True | str | Generate a new JsonSchema and store it in a file, validate it by reading the contents of the file. |
-| True | None | Generate a new JsonSchema and validate it directly, without the process of storing and reading files. |
-| False | str | Do not generate a new JsonSchema, directly utilize the JsonSchema in the path file for validation. |
-| False | None | Error: No Json Schema is generated and no file is passed in |
 
 ## **assert_by_yamlmap**
 During the course of the project, we usually want to manage the data in one place. `assert_by_yamlmap`is used to unify the processing of fine json data validation.
